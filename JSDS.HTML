@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SAOMA Food & Drink</title>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
+    <!-- Google Maps - CHANGE THIS KEY -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
+
+    <style>
+        :root { --primary: #ff5722; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #f9f9f9; }
+        header { background: var(--primary); color: white; position: sticky; top: 0; z-index: 1000; }
+        .navbar { max-width: 1200px; margin: 0 auto; padding: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .btn { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 50px; cursor: pointer; }
+        
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-content { background: white; padding: 2rem; border-radius: 20px; max-width: 420px; width: 95%; }
+        
+        /* Map Modal */
+        #map-modal .modal-content { max-width: 650px; }
+        #map { height: 420px; border-radius: 12px; margin: 15px 0; }
+        
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 1.2rem; padding: 1rem; }
+        .cart-container { max-width: 900px; margin: 1rem auto; background: white; border-radius: 20px; padding: 1.8rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Your existing HTML content (header, banner, products, cart, etc.) -->
+
+    <!-- Checkout Section -->
+    <section id="checkout" class="hidden">
+        <div class="cart-container">
+            <h2>Checkout</h2>
+            <form id="order-form">
+                <div>
+                    <label>Full Name *</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div>
+                    <label>Phone Number *</label>
+                    <input type="tel" id="phone" required>
+                </div>
+
+                <div style="margin: 25px 0;">
+                    <label>📍 Delivery Location *</label><br><br>
+                    <div style="display:flex; gap:10px;">
+                        <button type="button" id="get-location-btn" class="btn" style="background:#2196f3; flex:1;">
+                            📍 Use GPS
+                        </button>
+                        <button type="button" id="open-map-btn" class="btn" style="background:#4caf50; flex:1;">
+                            📌 Pin on Map
+                        </button>
+                    </div>
+                    <div id="location-display" style="margin-top:15px; padding:12px; background:#f0f0f0; border-radius:8px;">
+                        No location selected yet.
+                    </div>
+                </div>
+
+                <div>
+                    <label>Order Note (optional)</label>
+                    <textarea id="note" rows="3"></textarea>
+                </div>
+
+                <button type="submit" class="btn" style="width:100%; margin-top:20px;">Place Order</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Map Modal -->
+    <div id="map-modal" class="modal">
+        <div class="modal-content">
+            <h2>📍 Pin Your Location</h2>
+            <div id="map"></div>
+            <small>Click on the map to pin • You can drag the pin</small><br><br>
+            <button id="confirm-pinned-location" class="btn" style="width:100%;">✅ Confirm Location</button>
+            <button onclick="closeMapModal()" class="btn" style="background:#666; width:100%; margin-top:10px;">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== Firebase ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMyF3ow0w-KoXGNbgcG6ZsydPFENj8h0E",
+            authDomain: "soama-23d50.firebaseapp.com",
+            projectId: "soama-23d50",
+            storageBucket: "soama-23d50.firebasestorage.app",
+            messagingSenderId: "841769303753",
+            appId: "1:841769303753:web:c2b3389c3ac119c68f1718"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // ==================== Variables ====================
+        const products = [ /* Your products here */ ];
+        let cart = JSON.parse(localStorage.getItem("saomaCart")) || [];
+        let userLocation = null;
+        let mapInstance = null;
+        let marker = null;
+        let lastOrder = null;
+
+        // ==================== ENHANCED LOCATION SYSTEM ====================
+        function initMap() {
+            const defaultLocation = { lat: 12.5657, lng: 104.9174 };
+
+            mapInstance = new google.maps.Map(document.getElementById("map"), {
+                center: defaultLocation,
+                zoom: 15,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+
+            mapInstance.addListener("click", (e) => {
+                placeMarker(e.latLng);
+            });
+        }
+
+        function placeMarker(latLng) {
+            if (marker) marker.setMap(null);
+            marker = new google.maps.Marker({
+                position: latLng,
+                map: mapInstance,
+                draggable: true
+            });
+        }
+
+        function openMapModal() {
+            document.getElementById("map-modal").style.display = "flex";
+            if (!mapInstance) setTimeout(initMap, 300);
+            else setTimeout(() => google.maps.event.trigger(mapInstance, 'resize'), 100);
+        }
+
+        function closeMapModal() {
+            document.getElementById("map-modal").style.display = "none";
+        }
+
+        function confirmPinnedLocation() {
+            if (!marker) return alert("Please click on the map first!");
+            
+            userLocation = {
+                lat: marker.getPosition().lat(),
+                lng: marker.getPosition().lng()
+            };
+
+            document.getElementById("location-display").innerHTML = `
+                ✅ Location Selected!<br>
+                Lat: ${userLocation.lat.toFixed(6)}<br>
+                Lng: ${userLocation.lng.toFixed(6)}
+            `;
+            closeMapModal();
+        }
+
+        function getCurrentLocation() {
+            const btn = document.getElementById("get-location-btn");
+            btn.textContent = "Getting...";
+            btn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    document.getElementById("location-display").innerHTML = `
+                        ✅ GPS Success!<br>
+                        Lat: ${userLocation.lat.toFixed(6)}<br>
+                        Lng: ${userLocation.lng.toFixed(6)}
+                    `;
+                    btn.textContent = "✅ GPS Used";
+                },
+                () => {
+                    alert("GPS failed. Please use 'Pin on Map'");
+                    btn.textContent = "📍 Use GPS";
+                    btn.disabled = false;
+                }
+            );
+        }
+
+        // ==================== Checkout Form Submit ====================
+        document.getElementById("order-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            if (!userLocation) {
+                alert("Please select your delivery location first!");
+                return;
+            }
+            alert("Order submitted! (Location saved)");
+            // You can add your payment logic here
+        });
+
+        // ==================== Button Events ====================
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("open-map-btn").addEventListener("click", openMapModal);
+            document.getElementById("confirm-pinned-location").addEventListener("click", confirmPinnedLocation);
+            document.getElementById("get-location-btn").addEventListener("click", getCurrentLocation);
+        });
+        const products = [ /* Your products here */ ];
+        let cart = JSON.parse(localStorage.getItem("saomaCart")) || [];
+        let userLocation = null;
+        let mapInstance = null;
+        let marker = null;
+        let lastOrder = null;
+
+        // ==================== ENHANCED LOCATION SYSTEM ====================
+        function initMap() {
+            const defaultLocation = { lat: 12.5657, lng: 104.9174 };
+
+            mapInstance = new google.maps.Map(document.getElementById("map"), {
+                center: defaultLocation,
+                zoom: 15,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+
+            mapInstance.addListener("click", (e) => {
+                placeMarker(e.latLng);
+            });
+        }
+
+        function placeMarker(latLng) {
+            if (marker) marker.setMap(null);
+            marker = new google.maps.Marker({
+                position: latLng,
+                map: mapInstance,
+                draggable: true
+            });
+        }
+
+        function openMapModal() {
+            document.getElementById("map-modal").style.display = "flex";
+            if (!mapInstance) setTimeout(initMap, 300);
+            else setTimeout(() => google.maps.event.trigger(mapInstance, 'resize'), 100);
+        }
+
+        function closeMapModal() {
+            document.getElementById("map-modal").style.display = "none";
+        }
+
+        function confirmPinnedLocation() {
+            if (!marker) return alert("Please click on the map first!");
+            
+            userLocation = {
+                lat: marker.getPosition().lat(),
+                lng: marker.getPosition().lng()
+            };
+
+            document.getElementById("location-display").innerHTML = `
+                ✅ Location Selected!<br>
+                Lat: ${userLocation.lat.toFixed(6)}<br>
+                Lng: ${userLocation.lng.toFixed(6)}
+            `;
+            closeMapModal();
+        }
+    </script>
+</body>
+</html>

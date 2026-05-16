@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SAOMA Food & Drink – Snacks, Drinks & More</title>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #ff5722;
+            --success: #4caf50;
+            --dark: #1a1a1a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f9f9f9;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .navbar {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo img {
+            height: 60px;
+            width: 60px;
+        }
+
+        .opening-hours {
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 6px 12px;
+            border-radius: 30px;
+            white-space: nowrap;
+        }
+
+        .hamburger {
+            display: none;
+            font-size: 1.8rem;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.2rem;
+            list-style: none;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #ffd700;
+        }
+
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            background: var(--primary);
+            padding: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 999;
+        }
+
+        .mobile-menu.show {
+            display: block;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 87, 34, 0.4);
+        }
+
+        .banner {
+            position: relative;
+            height: 100vh;
+            min-height: 520px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 0 1.2rem;
+            overflow: hidden;
+        }
+
+        .banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.75)),
+                url('IMG/image.png') center/cover no-repeat;
+            z-index: -2;
+            animation: slowPanZoom 45s ease-in-out infinite alternate;
+        }
+
+        .banner .particles {
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            background-image:
+                radial-gradient(circle, rgba(255, 255, 255, 0.25) 1px, transparent 1px),
+                radial-gradient(circle, rgba(255, 200, 100, 0.18) 1px, transparent 1px);
+            background-size: 80px 80px, 150px 150px;
+            animation: gentleFloat 50s linear infinite;
+            opacity: 0.65;
+        }
+
+        .banner h1 {
+            font-size: clamp(2.4rem, 8vw, 4.5rem);
+            font-weight: 800;
+            text-shadow: 0 8px 30px rgba(0, 0, 0, 0.85);
+            margin-bottom: 1rem;
+            z-index: 2;
+        }
+
+        .banner p {
+            font-size: clamp(1.1rem, 4vw, 1.5rem);
+            max-width: 720px;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            margin-bottom: 2.5rem;
+            z-index: 2;
+        }
+
+        .banner-btn {
+            background: var(--primary);
+            color: white;
+            padding: 16px 45px;
+            border-radius: 50px;
+            font-size: clamp(1.1rem, 4vw, 1.35rem);
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 12px 35px rgba(255, 87, 34, 0.55);
+            z-index: 2;
+            transition: all 0.4s;
+        }
+
+        .banner-btn:hover {
+            transform: translateY(-6px) scale(1.06);
+        }
+
+        @keyframes slowPanZoom {
+            0% { background-position: 45% 40%; background-size: 112%; }
+            100% { background-position: 55% 60%; background-size: 120%; }
+        }
+
+        @keyframes gentleFloat {
+            0% { background-position: 0 0, 60px 80px; }
+            100% { background-position: 120px 100px, -80px 160px; }
+        }
+
+        h2 {
+            text-align: center;
+            margin: 3rem 0 1.5rem;
+            font-size: clamp(1.8rem, 5vw, 2.2rem);
+        }
+
+        .category-filter {
+            text-align: center;
+            margin: 2.5rem 0 1.5rem;
+            padding: 0 1rem;
+        }
+
+        .category-filter button {
+            margin: 8px 6px;
+            padding: 12px 22px;
+            font-size: 1rem;
+            border-radius: 50px;
+            white-space: nowrap;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+            gap: 1.2rem;
+            padding: 1rem 1rem 3rem;
+        }
+
+        @media (min-width: 768px) {
+            .product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                gap: 1.8rem;
+                padding: 2rem 1.5rem;
+            }
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            transition: all 0.4s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: contain;
+            background: #f8f8f8;
+            padding: 12px;
+        }
+
+        .product-info {
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .price {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0.6rem 0;
+        }
+
+        .cart-container {
+            max-width: 900px;
+            margin: 1rem auto;
+            background: white;
+            border-radius: 20px;
+            padding: 1.8rem 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .cart-item {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #fafafa;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            border-radius: 16px;
+            border: 1px solid #eee;
+        }
+
+        @media (min-width: 640px) {
+            .cart-item {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 6px 10px;
+            border-radius: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .quantity-control button {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0 16px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem 1.5rem;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 420px;
+            width: 100%;
+        }
+
+        footer {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+            font-size: 0.95rem;
+        }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hamburger { display: block; }
+        }
+        /* Closed Notice */
+#closed-notice {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #1a1a1a, #3a3a3a);
+    color: white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10000;
+    padding: 2rem;
+}
+
+.closed-content {
+    max-width: 500px;
+}
+
+.closed-content h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #ff5722;
+}
+
+.closed-content p {
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+#current-time {
+    font-size: 1.1rem;
+    margin-top: 1.5rem;
+    opacity: 0.8;
+}
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <nav class="navbar">
+            <div class="logo">
+                <img src="IMG/image-removebg-preview.png" alt="SAOMA Logo">
+            </div>
+            <div class="opening-hours">🕒 Open: 6:00 PM - 3:00 AM</div>
+
+            <button class="hamburger" id="hamburger">☰</button>
+
+            <ul class="nav-links">
+                <li><a href="#home" class="nav-item">Home</a></li>
+                <li><a href="#products" class="nav-item">Products</a></li>
+                <li><a href="#cart" id="cart-link">Cart (<span id="cart-count">0</span>)</a></li>
+                <li><a href="#orders" id="orders-link">My Orders</a></li>
+                <li><button id="login-btn" class="btn">Login with Gmail</button></li>
+                <li id="user-info" class="hidden"></li>
+            </ul>
+        </nav>
+
+        <div class="mobile-menu" id="mobile-menu">
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#products">Products</a></li>
+                <li><a href="#cart" id="mobile-cart-link">Cart (<span id="mobile-cart-count">0</span>)</a></li>
+                <li><a href="#orders" id="mobile-orders-link">My Orders</a></li>
+                <li><button id="mobile-login-btn" class="btn" style="width:100%; margin-top:10px;">Login with Gmail</button></li>
+            </ul>
+        </div>
+    </header>
+
+    <main>
+        <!-- Banner -->
+        <section id="home" class="banner">
+            <div class="particles"></div>
+            <h1>Welcome to SAOMA Food & Drink</h1>
+            <p>Delicious snacks, refreshing drinks & tasty treats delivered fast!</p>
+            <button onclick="goToProducts()" class="banner-btn">Order Now →</button>
+        </section>
+
+        <!-- Featured -->
+        <section id="featured">
+            <h2>Featured Items</h2>
+            <div class="product-grid" id="featured-grid"></div>
+        </section>
+
+        <!-- All Products -->
+        <section id="products">
+            <h2>មុខ​ម្ហូប & ភេសជ្ជៈ</h2>
+            <div class="category-filter">
+                <button onclick="filterCategory('all')" class="btn">All Items</button>
+                <button onclick="filterCategory('food')" class="btn">🍲 Food & Snacks</button>
+                <button onclick="filterCategory('drink')" class="btn">🥤 Drinks & Beverages</button>
+            </div>
+            <div class="product-grid" id="products-grid"></div>
+        </section>
+
+        <!-- Cart -->
+        <section id="cart" class="hidden">
+            <div class="cart-container">
+                <h2>Your Cart</h2>
+                <div id="cart-items"></div>
+                <div class="cart-total" style="font-size:1.5rem; text-align:right; margin:2rem 0;">
+                    Total: ៛<span id="cart-total">0</span>
+                </div>
+                <div class="text-center">
+                    <button id="checkout-btn" class="btn" style="width:100%; max-width:400px; padding:16px;">Proceed to Checkout →</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Checkout -->
+        <section id="checkout" class="hidden">
+            <div class="cart-container">
+                <h2>Checkout</h2>
+                <form id="order-form">
+                    <div style="display:grid; grid-template-columns:1fr; gap:1rem;">
+                        <div>
+                            <label>Full Name <span style="color:red;">*</span></label>
+                            <input type="text" id="name" required>
+                        </div>
+                        <div>
+                            <label>Phone Number <span style="color:red;">*</span></label>
+                            <input type="tel" id="phone" required>
+                        </div>
+                    </div>
+
+                    <div style="margin: 25px 0;">
+                        <label>📍 Delivery Location <span style="color:red;">*</span></label><br>
+                        <button type="button" id="get-location-btn" class="btn"
+                            style="background:#2196f3; width:100%; margin:12px 0;">
+                            📍 Get My Current Location (GPS)
+                        </button>
+                        <div id="location-display"
+                            style="font-size:0.95rem; color:#555; min-height: 80px; background:#f9f9f9; padding:12px; border-radius:8px; margin-top:10px;">
+                            No location selected yet.
+                        </div>
+                    </div>
+
+                    <div>
+                        <label>Order Note (optional)</label>
+                        <textarea id="note" rows="3" placeholder="No ice, extra chili..."></textarea>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn" style="width:100%; max-width:400px; padding:16px;">
+                            ✅ Place Order & Pay with ABA QR
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Order History -->
+        <section id="orders" class="hidden">
+            <div class="cart-container">
+                <h2 style="text-align:center; margin-bottom:2rem;">My Order History</h2>
+                <div id="orders-list"></div>
+            </div>
+        </section>
+
+        <!-- Success -->
+        <section id="success" class="hidden">
+            <div class="cart-container">
+                <h1>🎉 Order Placed Successfully!</h1>
+                <p>Thank you!<br>Your order has been sent to the admin with payment proof.</p>
+                <div id="success-details"
+                    style="text-align:left; margin:20px 0; background:#f9f9f9; padding:15px; border-radius:12px;"></div>
+                <button onclick="goHome()" class="btn" style="width:100%; max-width:300px;">Back to Home</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        © 2026 SAOMA Food & Drink. Made with ❤️ in Kampong Thom.
+    </footer>
+
+    <!-- QR Modal -->
+    <div id="qr-modal" class="modal">
+        <div class="modal-content">
+            <h2>Scan to Pay with ABA</h2>
+            <p id="qr-amount" style="font-size:1.5rem; font-weight:bold; color:#ff5722;"></p>
+            <img src="IMG/Qr.jpg" alt="ABA QR Code"
+                style="width:100%; max-width:280px; border-radius:12px; margin:15px 0;">
+            <p style="margin:15px 0;">Open <strong>ABA Mobile App</strong> → Scan QR Code</p>
+
+            <div style="margin:20px 0;">
+                <label>📸 Upload Payment Proof (Screenshot) <span style="color:red;">*</span></label>
+                <input type="file" id="payment-proof" accept="image/*"
+                    style="width:100%; padding:10px; margin-top:8px;">
+            </div>
+            <button id="confirm-payment-btn" class="btn" disabled style="width:100%;">✅ I Have Paid - Send Proof to Admin</button>
+            <button onclick="closeQRModal()" class="btn"
+                style="background:#666; margin-top:10px; width:100%;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <h2>Sign in with Gmail</h2>
+            <p>Fast & Secure</p>
+            <button onclick="signInWithGoogle()" class="btn"
+                style="background:#4285f4; width:100%; margin:15px 0;">Continue with Google</button>
+            <button onclick="closeLoginModal()" class="btn" style="background:#666; width:100%;">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== Firebase ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMyF3ow0w-KoXGNbgcG6ZsydPFENj8h0E",
+            authDomain: "soama-23d50.firebaseapp.com",
+            projectId: "soama-23d50",
+            storageBucket: "soama-23d50.firebasestorage.app",
+            messagingSenderId: "841769303753",
+            appId: "1:841769303753:web:c2b3389c3ac119c68f1718"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // ==================== Products ====================
+        const products = [
+            { id: 1, name: "ប្រហិតឆឹង", price: 6150, image: "IMG/Brorhit.jpg", category: "food" },
+            { id: 2, name: "សាច់គោបំពងល្ងរ", price: 6150, image: "IMG/beef-fried.jpg", category: "food" },
+            { id: 3, name: "ជើងមាន់បំពងខ្ទឹមស", price: 9020, image: "IMG/chicken-feet.jpg", category: "food" },
+            { id: 4, name: "ជើងមាន់ឆឹងម្ទេស", price: 8200, image: "IMG/chicken-feet-spicy.jpg", category: "food" },
+            { id: 5, name: "សាច់មាន់អាំង", price: 8200, image: "IMG/grilled-chicken.jpg", category: "food" },
+            { id: 6, name: "គុយទាវសាច់គោ", price: 10250, image: "IMG/beef-noodle.jpg", category: "food" },
+            { id: 7, name: "នំអន្សម", price: 4500, image: "IMG/num-ansorm.jpg", category: "food" },
+            { id: 8, name: "នំបាញ់ចេក", price: 4100, image: "IMG/banana-cake.jpg", category: "food" },
+            { id: 9, name: "ឆ្អឹងជំនីគោ", price: 4100, image: "IMG/ឆ្អឹងជំនី.png", category: "food" },
+            { id: 10, name: "ឆ្អឹងជំនីគោ", price: 4100, image: "IMG/ឆ្អឹងជំនី.png", category: "food" },
+            { id: 11, name: "ឆ្អឹងជំនីគោ", price: 4100, image: "IMG/ឆ្អឹងជំនី.png", category: "food" },
+            { id: 12, name: "ឆ្អឹងជំនីគោ", price: 4100, image: "IMG/ឆ្អឹងជំនី.png", category: "food" },
+            { id: 13, name: "កូកា", price: 5000, image: "IMG/coca.jpg", category: "drink" },
+            { id: 14, name: "ស្ទីង", price: 4500, image: "IMG/Sting.jpg", category: "drink" },
+            { id: 15, name: "ទឹក", price: 7380, image: "IMG/Water.png", category: "drink" },
+            { id: 16, name: "Jinro", price: 8200, image: "IMG/Jinro.jpg", category: "drink" },
+        ];
+
+        let cart = JSON.parse(localStorage.getItem("saomaCart")) || [];
+        let lastOrder = null;
+        let currentFilter = 'all';
+        let userLocation = JSON.parse(localStorage.getItem("saomaUserLocation")) || null;
+
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                window.innerWidth <= 768;
+        }
+
+        // ==================== Cart Functions ====================
+        function saveCart() {
+            localStorage.setItem("saomaCart", JSON.stringify(cart));
+            updateCartCount();
+        }
+
+        function updateCartCount() {
+            const count = cart.reduce((sum, i) => sum + i.quantity, 0);
+            document.getElementById("cart-count").textContent = count;
+            const mobileCount = document.getElementById("mobile-cart-count");
+            if (mobileCount) mobileCount.textContent = count;
+        }
+
+        function addToCart(id) {
+            const existing = cart.find(i => i.id === id);
+            if (existing) existing.quantity++;
+            else cart.push({ id, quantity: 1 });
+            saveCart();
+            const prod = products.find(p => p.id === id);
+            alert(prod.name + " added to cart!");
+        }
+
+        function changeQuantity(id, delta) {
+            const item = cart.find(i => i.id === id);
+            if (item) {
+                item.quantity = Math.max(1, item.quantity + delta);
+                saveCart();
+                renderCart();
+            }
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id !== id);
+            saveCart();
+            renderCart();
+        }
+
+        function saveOrderToHistory(order) {
+            if (!auth.currentUser) return;
+            const uid = auth.currentUser.uid;
+            const key = `saomaOrders_${uid}`;
+            let orders = JSON.parse(localStorage.getItem(key)) || [];
+            order.date = new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            order.status = "Completed";
+            orders.unshift(order);
+            localStorage.setItem(key, JSON.stringify(orders));
+        }
+
+        // ==================== Render Functions ====================
+        function createProductCard(p, container) {
+            const card = document.createElement("div");
+            card.className = "product-card";
+            card.innerHTML = `
+                <img src="${p.image}" alt="${p.name}" loading="lazy">
+                <div class="product-info">
+                    <h3>${p.name}</h3>
+                    <div class="price">៛${p.price.toLocaleString('en-US')}</div>
+                    <button class="btn add-to-cart" data-id="${p.id}" style="width:100%; margin-top:8px;">Add to Cart</button>
+                </div>`;
+            container.appendChild(card);
+        }
+
+        function renderFeatured() {
+            const container = document.getElementById("featured-grid");
+            container.innerHTML = "";
+            products.slice(0, 6).forEach(p => createProductCard(p, container));
+        }
+
+        function renderProducts() {
+            const container = document.getElementById("products-grid");
+            container.innerHTML = "";
+
+            let filtered = products;
+            if (currentFilter === 'food') filtered = products.filter(p => p.category === 'food');
+            else if (currentFilter === 'drink') filtered = products.filter(p => p.category === 'drink');
+
+            filtered.forEach(p => createProductCard(p, container));
+        }
+
+        function filterCategory(cat) {
+            currentFilter = cat;
+            renderProducts();
+        }
+
+        function renderCart() {
+            const container = document.getElementById("cart-items");
+            container.innerHTML = "";
+            if (cart.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:5rem 2rem; color:#777;">
+                    <p>Your cart is empty 😕</p>
+                    <button onclick="goHome()" class="btn" style="margin-top:2rem;">Browse Products</button>
+                </div>`;
+                document.getElementById("cart-total").textContent = "0";
+                return;
+            }
+
+            let total = 0;
+            cart.forEach(item => {
+                const prod = products.find(p => p.id === item.id);
+                if (!prod) return;
+                total += prod.price * item.quantity;
+                const div = document.createElement("div");
+                div.className = "cart-item";
+                div.innerHTML = `
+                    <div>
+                        <strong>${prod.name}</strong>
+                        <div style="color:var(--primary); font-weight:600;">៛${prod.price.toLocaleString('en-US')} × ${item.quantity}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:15px; justify-content:flex-end;">
+                        <div class="quantity-control">
+                            <button onclick="changeQuantity(${item.id}, -1)">−</button>
+                            <span>${item.quantity}</span>
+                            <button onclick="changeQuantity(${item.id}, 1)">+</button>
+                        </div>
+                        <button onclick="removeFromCart(${item.id})" style="background:#ff3b30; color:white; border:none; padding:8px 16px; border-radius:30px;">Remove</button>
+                    </div>`;
+                container.appendChild(div);
+            });
+            document.getElementById("cart-total").textContent = total.toLocaleString('en-US');
+        }
+
+        function renderSuccess(order) {
+            let html = `<strong>Customer:</strong> ${order.name}<br>
+                        <strong>Phone:</strong> ${order.phone}<br>`;
+            if (order.note) html += `<strong>Note:</strong> ${order.note}<br>`;
+            if (order.location) {
+                html += `<br><strong>📍 Delivery Location:</strong><br>
+                         Lat: ${order.location.lat.toFixed(6)}<br>
+                         Lng: ${order.location.lng.toFixed(6)}<br>
+                         <a href="https://www.google.com/maps?q=${order.location.lat},${order.location.lng}" target="_blank">View on Google Maps</a>`;
+            }
+            html += `<br><strong>Items:</strong><br>`;
+            order.cart.forEach(item => {
+                const p = products.find(pr => pr.id === item.id);
+                if (p) html += `• ${p.name} × ${item.quantity} = ៛${(p.price * item.quantity).toLocaleString('en-US')}<br>`;
+            });
+            html += `<br><strong>Total:</strong> ៛${order.total.toLocaleString('en-US')}`;
+            document.getElementById("success-details").innerHTML = html;
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll("main > section").forEach(section => section.classList.add("hidden"));
+            const target = document.getElementById(pageId);
+            if (target) target.classList.remove("hidden");
+
+            if (pageId === "cart") renderCart();
+            if (pageId === "orders") renderOrderHistory();
+        }
+
+        function goHome() {
+            showPage("home");
+            cart = [];
+            saveCart();
+        }
+
+        function goToProducts() {
+            showPage("products");
+            setTimeout(() => document.getElementById("products").scrollIntoView({ behavior: "smooth" }), 100);
+        }
+
+        function requireLogin(callback) {
+            if (auth.currentUser) callback();
+            else {
+                alert("Please login with Gmail first.");
+                document.getElementById("login-modal").style.display = "flex";
+            }
+        }
+
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+
+            if (isMobileDevice()) {
+                auth.signInWithRedirect(provider).catch(err => alert("Login failed: " + err.message));
+            } else {
+                auth.signInWithPopup(provider)
+                    .then(() => closeLoginModal())
+                    .catch(err => alert("Login failed: " + err.message));
+            }
+        }
+
+        function closeLoginModal() {
+            document.getElementById("login-modal").style.display = "none";
+        }
+
+        function updateUserUI(user) {
+            const loginBtn = document.getElementById("login-btn");
+            const userInfo = document.getElementById("user-info");
+            const mobileLoginBtn = document.getElementById("mobile-login-btn");
+
+            if (user) {
+                loginBtn.classList.add("hidden");
+                if (mobileLoginBtn) mobileLoginBtn.style.display = "none";
+                userInfo.classList.remove("hidden");
+                userInfo.innerHTML = `👤 ${user.displayName || user.email} 
+                    <button onclick="auth.signOut()" style="background:rgba(255,255,255,0.15); color:white; border:1px solid rgba(255,255,255,0.3); padding:6px 14px; border-radius:25px;">Logout</button>`;
+            } else {
+                loginBtn.classList.remove("hidden");
+                if (mobileLoginBtn) mobileLoginBtn.style.display = "block";
+                userInfo.classList.add("hidden");
+            }
+        }
+
+        function getCurrentLocation() {
+            const btn = document.getElementById("get-location-btn");
+            btn.textContent = "Getting location...";
+            btn.disabled = true;
+
+            if (!navigator.geolocation) {
+                alert("Your browser does not support location services.");
+                resetLocationButton();
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+                    localStorage.setItem("saomaUserLocation", JSON.stringify(userLocation));
+                    document.getElementById("location-display").innerHTML =
+                        `✅ Location captured!<br>
+                         <strong>Lat:</strong> ${userLocation.lat.toFixed(6)}<br>
+                         <strong>Lng:</strong> ${userLocation.lng.toFixed(6)}`;
+                    btn.textContent = "✅ Location Updated";
+                    btn.style.backgroundColor = "#4caf50";
+                },
+                (error) => {
+                    alert("Failed to get location. Please enable GPS and try again.");
+                    resetLocationButton();
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
+            );
+        }
+
+        function resetLocationButton() {
+            const btn = document.getElementById("get-location-btn");
+            btn.textContent = "📍 Get My Current Location (GPS)";
+            btn.disabled = false;
+            btn.style.backgroundColor = "#2196f3";
+        }
+
+        function closeQRModal() {
+            document.getElementById("qr-modal").style.display = "none";
+            document.getElementById("payment-proof").value = "";
+            document.getElementById("confirm-payment-btn").disabled = true;
+        }
+
+        async function confirmPayment() {
+            const file = document.getElementById("payment-proof").files[0];
+            if (!file) return alert("Please upload payment proof first.");
+            if (!lastOrder) return alert("Order data missing.");
+
+            const BOT_TOKEN = "8156676939:AAE_1le6aneeHfbq__Ss4fb0HG3ejUiQIA4";
+            const CHAT_ID = "8375512408";
+
+            try {
+                const user = auth.currentUser;
+                const userLine = user ? `\n👤 Logged in: ${user.email}` : "";
+
+                const itemsText = lastOrder.cart.map(item => {
+                    const p = products.find(pr => pr.id === item.id);
+                    return `• ${p ? p.name : "Unknown"} × ${item.quantity} = ៛${(p.price * item.quantity).toLocaleString('en-US')}`;
+                }).join("\n");
+
+                let message = `🛒 <b>New SAOMA Order</b>${userLine}\n\n`;
+                message += `👤 Customer: ${lastOrder.name}\n`;
+                message += `📞 Phone: ${lastOrder.phone}\n`;
+                if (lastOrder.note) message += `📝 Note: ${lastOrder.note}\n`;
+                
+                message += `\n${itemsText}\n`;
+                message += `💰 Total: ៛${lastOrder.total.toLocaleString('en-US')}\n`;
+                message += `💳 Paid via ABA QR ✅\n\n`;
+
+                // Fixed Location with clickable map link
+                if (lastOrder.location) {
+                    const { lat, lng } = lastOrder.location;
+                    message += `📍 <b>Delivery Location:</b>\n`;
+                    message += `Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)}\n`;
+                    message += `🔗 <a href="https://www.google.com/maps?q=${lat},${lng}">📍 Open in Google Maps</a>`;
+                }
+
+                const formData = new FormData();
+                formData.append("chat_id", CHAT_ID);
+                formData.append("photo", file);
+                formData.append("caption", message);
+                formData.append("parse_mode", "HTML");
+
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                saveOrderToHistory(lastOrder);
+                alert("✅ Order sent successfully!");
+                closeQRModal();
+                cart = [];
+                saveCart();
+                showPage("success");
+                renderSuccess(lastOrder);
+
+            } catch (err) {
+                console.error(err);
+                alert("Failed to send. Please try again or contact admin.");
+            }
+        }
+
+        function renderOrderHistory() {
+            const container = document.getElementById("orders-list");
+            container.innerHTML = "";
+
+            if (!auth.currentUser) {
+                container.innerHTML = `<p style="text-align:center; padding:3rem;">Please login to view your orders.</p>`;
+                return;
+            }
+
+            const uid = auth.currentUser.uid;
+            const key = `saomaOrders_${uid}`;
+            let orders = JSON.parse(localStorage.getItem(key)) || [];
+
+            if (orders.length === 0) {
+                container.innerHTML = `<p style="text-align:center; padding:3rem;">You haven't placed any orders yet.</p>`;
+                return;
+            }
+
+            orders.forEach(order => {
+                let itemsHtml = order.cart.map(item => {
+                    const p = products.find(pr => pr.id === item.id);
+                    return `• ${p ? p.name : "Unknown"} × ${item.quantity}`;
+                }).join("<br>");
+
+                const div = document.createElement("div");
+                div.className = "cart-container";
+                div.style.marginBottom = "1.5rem";
+                div.innerHTML = `
+                    <div><strong>Order #${Math.floor(100000 + Math.random() * 900000)}</strong><br>
+                    <small>${order.date}</small></div>
+                    <div style="margin:12px 0; line-height:1.6;">${itemsHtml}</div>
+                    <div style="font-weight:700; color:var(--primary); text-align:right; font-size:1.2rem;">
+                        Total: ៛${order.total.toLocaleString('en-US')}
+                    </div>`;
+                container.appendChild(div);
+            });
+        }
+
+        // ==================== Initialize ====================
+        document.addEventListener("DOMContentLoaded", () => {
+            updateCartCount();
+            renderFeatured();
+            renderProducts();
+
+            // Navigation
+            document.querySelectorAll(".nav-links a, #mobile-menu a").forEach(link => {
+                link.addEventListener("click", (e) => {
+                    const href = link.getAttribute("href");
+                    if (href === "#cart" || href === "#orders") {
+                        e.preventDefault();
+                        requireLogin(() => showPage(href.substring(1)));
+                    } else {
+                        showPage(href.substring(1));
+                    }
+                });
+            });
+
+            document.getElementById("hamburger").addEventListener("click", () => {
+                document.getElementById("mobile-menu").classList.toggle("show");
+            });
+
+            document.addEventListener("click", e => {
+                if (e.target.classList.contains("add-to-cart")) {
+                    addToCart(parseInt(e.target.dataset.id));
+                }
+            });
+
+            document.getElementById("checkout-btn").addEventListener("click", () => {
+                if (cart.length === 0) return alert("Your cart is empty!");
+                requireLogin(() => showPage("checkout"));
+            });
+
+            document.getElementById("order-form").addEventListener("submit", e => {
+                e.preventDefault();
+                requireLogin(() => {
+                    const name = document.getElementById("name").value.trim();
+                    const phone = document.getElementById("phone").value.trim();
+                    const note = document.getElementById("note").value.trim();
+
+                    if (!name || !phone) return alert("Name and phone are required.");
+                    if (!userLocation) return alert("Please get your current location using GPS first!");
+
+                    const total = cart.reduce((sum, item) => {
+                        const p = products.find(pr => pr.id === item.id);
+                        return sum + (p ? p.price * item.quantity : 0);
+                    }, 0);
+
+                    lastOrder = {
+                        name, phone, note,
+                        cart: JSON.parse(JSON.stringify(cart)),
+                        total,
+                        location: userLocation
+                    };
+
+                    document.getElementById("qr-amount").innerHTML = `Total: ៛${total.toLocaleString('en-US')}`;
+                    document.getElementById("qr-modal").style.display = "flex";
+                });
+            });
+
+            document.getElementById("payment-proof").addEventListener("change", () => {
+                document.getElementById("confirm-payment-btn").disabled = false;
+            });
+
+            document.getElementById("confirm-payment-btn").addEventListener("click", confirmPayment);
+            document.getElementById("login-btn").addEventListener("click", () => document.getElementById("login-modal").style.display = "flex");
+            document.getElementById("mobile-login-btn").addEventListener("click", () => document.getElementById("login-modal").style.display = "flex");
+            document.getElementById("get-location-btn").addEventListener("click", getCurrentLocation);
+
+            auth.onAuthStateChanged(updateUserUI);
+
+            // Restore location if exists
+            if (userLocation) {
+                document.getElementById("location-display").innerHTML = 
+                    `✅ Location captured!<br>
+                     <strong>Lat:</strong> ${userLocation.lat.toFixed(6)}<br>
+                     <strong>Lng:</strong> ${userLocation.lng.toFixed(6)}`;
+            }
+        });
+    </script>
+</body>
+</html>
